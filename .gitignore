@@ -1,0 +1,4 @@
+__pycache__/
+*.prp
+*_sheet.png
+prp_out/
