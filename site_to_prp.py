@@ -4,6 +4,7 @@ site_to_prp.py - rebuild Palace .prp files from avatars.thepalace.app
     pip install pillow            (only needed for --sheet)
     python site_to_prp.py --list
     python site_to_prp.py --bag 95 --out bag95.prp --sheet
+    python site_to_prp.py --bag 95 --palacechat    (also adds it to PalaceChat's own bag)
 
 How it works: /api/props/{id}/raw gives each prop's unpacked 8-bit palette
 indexes + alpha. We re-run ThePalace 3.6's row-by-row RLE encoder on them
@@ -100,6 +101,12 @@ def main():
     ap.add_argument("--favorites", choices=["all", "site"], default="all",
                     help="which props go in the prop bag PalaceChat imports: "
                          "all (default) or only ones the site marks as favorites")
+    ap.add_argument("--palacechat", action="store_true",
+                    help="also add the props straight into PalaceChat's own prop bag, in a "
+                         "category named after the archive bag (close PalaceChat first)")
+    ap.add_argument("--category", help="PalaceChat bag category name (default: the archive's bag file name)")
+    ap.add_argument("--palacechat-bag", help="PropBag.bundle folder, if not the default "
+                                             "Documents/PalaceChat/PropBag.bundle")
     args = ap.parse_args()
     site = Site(args.base, args.delay)
 
@@ -149,6 +156,22 @@ def main():
           f"{len(mismatched)} re-encoded with a new CRC, {len(skipped)} skipped")
     for s in skipped:
         print("  skipped", *s)
+    if args.palacechat:
+        import palacechat_bag as pcb
+        if pcb.palacechat_running():
+            sys.exit("PalaceChat is running; close it and run again to add the props to its bag.")
+        bag = pcb.Bag(args.palacechat_bag)
+        print("bag backup:", bag.backup())
+        cat = args.category
+        if not cat:
+            names = {b["id"]: b.get("filename") for b in site.bags()}
+            cat = (names.get(args.bag) or f"bag{args.bag}").rsplit(".", 1)[0]
+        # Same rule as the .prp's Fave list: with --favorites site only the props the
+        # archive marks as the owner's bag go in; the rest of a .prp is cache.
+        want = set(favorites) if favorites else {p.id for p in check}
+        new, existing = bag.add([pcb.from_prp_prop(p) for p in check if p.id in want], cat)
+        print(f"PalaceChat bag: added {len(new)} props to category '{cat}', "
+              f"{existing} were already there")
     if args.sheet:
         sheet = out.rsplit(".", 1)[0] + "_sheet.png"
         prp.contact_sheet(props, sheet)

@@ -23,6 +23,28 @@ Options:
 - `--favorites all` (default) puts every prop in the file's prop bag. PalaceChat only imports the props listed there, so this is usually what you want. `--favorites site` lists only the props the archive marks as favorites.
 - `--delay 0.3` is the pause after each request, in seconds. The archive is a volunteer project, so please leave it at 0.3 or higher.
 
+### Straight into PalaceChat's bag
+
+PalaceChat 5 keeps its own bag in `Documents\PalaceChat\PropBag.bundle`. Close PalaceChat, then:
+
+```
+python site_to_prp.py --bag 95 --palacechat          # .prp as usual, plus a new bag category
+python palacechat_bag.py info                         # categories and counts
+python palacechat_bag.py import-prp mine.prp          # any .prp, as its own category
+python palacechat_bag.py import-images *.png *.gif --category "My art"   # full-color props
+python palacechat_bag.py export PalaceChat out_dir    # a category back out as PNGs
+```
+
+`import-images` makes a still image a PNG prop and an animated GIF, WebP or APNG an
+animated WebP prop, the same kind PalaceChat's advanced editor makes (flags 0x0800, frame
+delay as the speed). Anything bigger than 220x220 is scaled to fit (`--max-size` to change,
+0 to keep the size), and props are centered on the avatar the way PalaceChat centers its
+own. `--head` marks them as head props.
+
+Every write makes a copy of the bag first (`PropBag.bundle.bak-<time>`, next to it). Props
+keep their original id and checksum, so PalaceChat recognizes them when someone in a room
+wears the same prop. The bag format is documented at the top of `palacechat_bag.py`.
+
 To look inside an existing `.prp`, `python palace_prp.py file.prp out_dir` writes every prop as a PNG plus a contact sheet (this one needs Pillow too).
 
 ## How it works
